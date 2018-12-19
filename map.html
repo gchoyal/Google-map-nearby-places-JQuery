@@ -1,0 +1,133 @@
+<div id="gmap_canvas"></div>
+
+//***************Add before below code*******/
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDftgWheUgwhDpTItZNd8gNTpooiagNWJw&libraries=places&sensor=false"></script>
+
+
+/***********JS CODE ***********/
+var geocoder;
+var map;
+var markers = Array();
+var infos = Array();
+
+function initialize() {
+    // prepare Geocoder
+    geocoder = new google.maps.Geocoder();
+
+    // set initial position (New York)
+    var myLatlng = new google.maps.LatLng(45.5053561,-73.5647536);
+
+    var myOptions = { // default map options
+        zoom: 15,
+        center: myLatlng,
+		styles: [{"stylers": [{ "saturation": -100 }]}],
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+
+    };
+    map = new google.maps.Map(document.getElementById('gmap_canvas'), myOptions);
+	
+	var marker = new google.maps.Marker({
+		position: myLatlng,
+		icon: 'https://liveatencore.com/wp-content/themes/liveatencore/assets/img/marker.png',
+		map: map,
+		title:'Encore - Luxury Rental Residences'
+	});
+	
+}
+
+// clear overlays function
+function clearOverlays() {
+    if (markers) {
+        for (i in markers) {
+            markers[i].setMap(null);
+        }
+        markers = [];
+        infos = [];
+    }
+}
+
+// clear infos function
+function clearInfos() {
+    if (infos) {
+        for (i in infos) {
+            if (infos[i].getMap()) {
+                infos[i].close();
+            }
+        }
+    }
+}
+
+// find custom places function
+function findPlaces() {
+
+    // prepare variables (filter)
+    var type =  jQuery('.map-location-type-link.active').attr('location-type'); //document.getElementById('gmap_type').value;
+    var radius = 1000; //document.getElementById('gmap_radius').value;
+    //var keyword = document.getElementById('gmap_keyword').value;
+
+    var cur_location = new google.maps.LatLng(45.5053561,-73.5647536);
+
+    // prepare request to Places
+    var request = {
+        location: cur_location,
+        radius: radius,
+        types: [type]
+    };
+    
+	/*if (keyword) {
+        request.keyword = [keyword];
+    }*/
+
+    // send request
+    service = new google.maps.places.PlacesService(map);
+    service.search(request, createMarkers);
+}
+
+// create markers (from 'findPlaces' function)
+function createMarkers(results, status) {
+    if (status == google.maps.places.PlacesServiceStatus.OK) {
+
+        // if we have found something - clear map (overlays)
+        clearOverlays();
+
+        // and create new markers by search result
+        for (var i = 0; i < results.length; i++) {
+            createMarker(results[i]);
+        }
+		jQuery('.no-places-found-msg').hide();
+		
+    } else if (status == google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+		jQuery('.no-places-found-msg').show();
+
+    }
+}
+
+// creare single marker function
+function createMarker(obj) {
+
+    // prepare new Marker object
+    var mark = new google.maps.Marker({
+        position: obj.geometry.location,
+        map: map,
+        title: obj.name,
+		icon: 'https://liveatencore.com/wp-content/themes/liveatencore/assets/img/marker-pin.png'
+    });
+    markers.push(mark);
+
+    // prepare info window
+    var infowindow = new google.maps.InfoWindow({
+        content: '<div class="map-location-popup"><h3>' + obj.name + 
+        '</h3><h4><b>Rating:</b> ' + obj.rating + '</h4><p><b>Vicinity:</b> ' + obj.vicinity + '</p></div>'
+    });
+
+    // add event handler to current marker
+    google.maps.event.addListener(mark, 'click', function() {
+        clearInfos();
+        infowindow.open(map,mark);
+    });
+    infos.push(infowindow);
+}
+
+// initialization
+google.maps.event.addDomListener(window, 'load', initialize);
